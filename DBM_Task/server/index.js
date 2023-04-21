@@ -19,8 +19,8 @@ app.use(express.json());
 let connection = mysql.createConnection({
   host: "localhost",
   user: "root",
-  password: "Sachin@ms1",
-  database: "todo_bdm",
+  password: "root123",
+  database: "todo_App",
 });
 
 connection.connect((err) => { 
@@ -36,10 +36,10 @@ app.set("view engine", "ejs");
 
 ///////////////******************** user apis*********************///////////////*/
 
-//creating the user
+//...............................creating the user...................................//
 
 app.post("/user/create", (req, res) => {
-  // Registering a new user
+//............................ Registering user..............................//
   const { name, email, password } = req.body;
   const passwordHash = bcrypt.hashSync(password, 10);
   connection.query(
@@ -52,9 +52,11 @@ app.post("/user/create", (req, res) => {
 });
 
 
-//  make user login
+//.......................... login part............................................//
+
 app.post("/user/login", (req, res) => {
-  // Authenticating a user and generating a JWT token
+  //................. Authentication part............................................//
+  
   const { email, password } = req.body;
   connection.query(
     `SELECT * FROM user WHERE email='${email}'`,
@@ -80,9 +82,9 @@ app.post("/user/login", (req, res) => {
   );
 });
 
-// authentication middleware code for taks
+// ...................authentication middleware.............................//
 const verifyToken = (req, res, next) => {
-  const token = req.headers.authorization;
+  let token = req.cookies.token;
   if (!token) {
     res.status(401).json({ message: "No token provided" });
   } else {
@@ -98,10 +100,10 @@ const verifyToken = (req, res, next) => {
 };
 
 
-//*************************************code for the task********************* */
+//**************************************code for the task********************** */
 
-// getting all task
-app.get("/tasks", verifyToken, (req, res) => {
+//....................... get all task
+app.get("/task/all", verifyToken, (req, res) => {
   // Retrieving all tasks for a user from the database
   const userId = req.userId;
   connection.query(
@@ -114,10 +116,11 @@ app.get("/tasks", verifyToken, (req, res) => {
 });
 
 
-// Inserting a new task into the database
-app.post("/tasks", verifyToken, (req, res) => {
-  const { description } = req.body;
-  const status = "pending";
+//.................... Inserting a new task into the database.....................//
+
+app.post("/task/create", verifyToken, (req, res) => {
+  const { description , status} = req.body;
+  // const status = "pending";
   const userId = req.userId;
   connection.query(
     `INSERT INTO task (description, status, user_id) VALUES ('${description}', '${status}', '${userId}')`,
@@ -128,7 +131,9 @@ app.post("/tasks", verifyToken, (req, res) => {
   );
 });
 
-// updating the task
+
+//....................... updating the task.......................................//
+
 app.put("/tasks/:id", verifyToken , (req, res) => {
   const taskId = req.params.id;
   const task = req.body.task; 
@@ -144,26 +149,12 @@ app.put("/tasks/:id", verifyToken , (req, res) => {
 });
 
 
-// deleting the task
-app.delete("/tasks/:id", verifyToken , async (req, res) => {
+//.........................deleting the task......................................//
+
+app.get("/task/delete/:id", verifyToken , async (req, res) => {
   try {
     const id = req.params.id;
-    const userId = req.user.id;
-
-    const task = await connection.query(
-      "SELECT * FROM task WHERE id = ? AND user_id = ?",
-      [id, userId]
-    );
-    if (!task.length) {
-      return res
-        .status(404)
-        .json({
-          error: "Task not found or does not belong to the authenticated user",
-        });
-    }
-
     await connection.query("DELETE FROM task WHERE id = ?", [id]);
-
     res.json({ message: "Task deleted successfully" });
   } catch (err) {
     console.error(err);
